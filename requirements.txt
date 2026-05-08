@@ -1,5 +1,9 @@
 streamlit
 pandas
 plotly
+statsmodels
 scikit-learn
 groq
+openpyxl
+xlsxwriter
+reportlab
