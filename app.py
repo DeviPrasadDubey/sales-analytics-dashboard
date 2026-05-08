@@ -8,6 +8,7 @@ import streamlit as st
 from sklearn.linear_model import LinearRegression
 
 from utils import charts
+from utils.ai_analyst import get_ai_insight
 from utils.loader import load_sales_data
 
 
@@ -25,7 +26,7 @@ date_range = st.sidebar.date_input("Date Range", [min_date, max_date], min_value
 if len(date_range) == 2:
     df = df[(df["date"] >= pd.to_datetime(date_range[0])) & (df["date"] <= pd.to_datetime(date_range[1]))]
 
-page = st.sidebar.radio("Navigation", ["Overview", "Products", "Regions", "Forecast"])
+page = st.sidebar.radio("Navigation", ["Overview", "Products", "Regions", "Forecast", "AI Analyst"])
 
 if df.empty:
     st.warning("No data available for the selected date range.")
@@ -111,3 +112,16 @@ elif page == "Forecast":
     col1.metric("Forecasted Revenue (30d)", f"₹{future_revenue.sum():,.0f}")
     col2.metric("Daily Growth Rate", f"₹{model.coef_[0]:,.0f}/day")
     col3.metric("Peak Forecast Day", f"₹{future_revenue.max():,.0f}")
+
+elif page == "AI Analyst":
+    st.subheader("AI Analyst")
+    uploaded_file = st.file_uploader("Upload your CSV", type="csv")
+    if uploaded_file is not None:
+        ai_df = pd.read_csv(uploaded_file)
+        st.write("Columns:", ai_df.columns.tolist())
+        st.write("Shape:", ai_df.shape)
+        question = st.text_input("Ask anything about your data")
+        if question:
+            response = get_ai_insight(ai_df, question)
+            st.info(response)
+        st.dataframe(ai_df.head(10))
