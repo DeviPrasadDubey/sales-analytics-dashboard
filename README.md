@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Sales Analytics Dashboard
 
 A modular Streamlit skeleton app for sales analytics.
@@ -20,3 +21,7 @@ A modular Streamlit skeleton app for sales analytics.
 ## Notes
 
 This is the initial skeleton. Only the Overview page metrics are implemented.
+=======
+# sales-analytics-dashboard
+Sales Data Analytics Dashboard.
+>>>>>>> d35e0f6c666706bf40d24cb60e9e1a2d0f49fbe5
