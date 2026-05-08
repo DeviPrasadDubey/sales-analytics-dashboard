@@ -1,10 +1,10 @@
-import anthropic
-from config import ANTHROPIC_API_KEY
+from groq import Groq
+from config import GROQ_API_KEY
+import json
 
 def get_ai_insight(df, user_question):
-    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    client = Groq(api_key=GROQ_API_KEY)
     
-    # Send column names + sample data + user question to Claude
     columns = df.columns.tolist()
     sample = df.head(5).to_string()
     dtypes = df.dtypes.to_string()
@@ -23,14 +23,38 @@ Summary statistics:
 
 User question: {user_question}
 
-Answer the question with specific numbers from the data. Be concise and clear. 
-If relevant, suggest what chart would best show this insight.
+Respond ONLY in this exact JSON format, nothing else:
+{{
+    "insight": "Your text answer here with specific numbers",
+    "chart": {{
+        "type": "bar" or "line" or "pie" or "scatter" or "none",
+        "x": "column name for x axis",
+        "y": "column name for y axis",
+        "title": "chart title",
+        "agg": "sum" or "mean" or "count"
+    }}
+}}
+
+Rules:
+- insight must have specific numbers from data
+- chart.x and chart.y must be exact column names from: {columns}
+- if no chart is needed, set type to "none"
+- return ONLY the JSON, no extra text
 """
     
-    message = client.messages.create(
-        model="claude-opus-4-5",
-        max_tokens=1024,
-        messages=[{"role": "user", "content": prompt}]
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=1024
     )
     
-    return message.content[0].text
+    raw = response.choices[0].message.content.strip()
+    # Clean JSON if model adds backticks
+    raw = raw.replace("```json", "").replace("```", "").strip()
+    
+    try:
+        result = json.loads(raw)
+    except:
+        result = {"insight": raw, "chart": {"type": "none"}}
+    
+    return result

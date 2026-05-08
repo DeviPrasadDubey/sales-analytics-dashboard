@@ -122,6 +122,42 @@ elif page == "AI Analyst":
         st.write("Shape:", ai_df.shape)
         question = st.text_input("Ask anything about your data")
         if question:
-            response = get_ai_insight(ai_df, question)
-            st.info(response)
+            result = get_ai_insight(ai_df, question)
+            st.info(result["insight"])
+            chart_spec = result.get("chart", {})
+            chart_type = chart_spec.get("type", "none")
+
+            if chart_type != "none":
+                x_col = chart_spec.get("x")
+                y_col = chart_spec.get("y")
+                title = chart_spec.get("title", "")
+                agg_func = chart_spec.get("agg", "sum")
+                
+                try:
+                    # Aggregate data
+                    if agg_func == "sum":
+                        chart_df = ai_df.groupby(x_col)[y_col].sum().reset_index()
+                    elif agg_func == "mean":
+                        chart_df = ai_df.groupby(x_col)[y_col].mean().reset_index()
+                    elif agg_func == "count":
+                        chart_df = ai_df.groupby(x_col)[y_col].count().reset_index()
+                    else:
+                        chart_df = ai_df.groupby(x_col)[y_col].sum().reset_index()
+                    
+                    # Render chart
+                    if chart_type == "bar":
+                        fig = px.bar(chart_df, x=x_col, y=y_col, title=title)
+                    elif chart_type == "line":
+                        fig = px.line(chart_df, x=x_col, y=y_col, title=title)
+                    elif chart_type == "pie":
+                        fig = px.pie(chart_df, names=x_col, values=y_col, title=title)
+                    elif chart_type == "scatter":
+                        fig = px.scatter(ai_df, x=x_col, y=y_col, title=title)
+                    else:
+                        fig = None
+
+                    if fig is not None:
+                        st.plotly_chart(fig, use_container_width=True)
+                except Exception as e:
+                    st.warning(f"Chart generate nahi ho saka: {e}")
         st.dataframe(ai_df.head(10))
