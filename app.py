@@ -123,7 +123,21 @@ elif page == "AI Analyst":
         question = st.text_input("Ask anything about your data")
         if question:
             result = get_ai_insight(ai_df, question)
+            # Show KPI cards from data
+            st.markdown("### 📊 Quick KPIs")
+            numeric_cols = ai_df.select_dtypes(include="number").columns.tolist()
+            kpi_cols = st.columns(min(4, len(numeric_cols)))
+            for i, col in enumerate(numeric_cols[:4]):
+                kpi_cols[i].metric(col.replace("_", " ").title(), f"{ai_df[col].sum():,.0f}")
+
+            st.divider()
+
+            # Show AI text insight
             st.info(result["insight"])
+
+            st.divider()
+
+            # Show chart based on AI response
             chart_spec = result.get("chart", {})
             chart_type = chart_spec.get("type", "none")
 
@@ -132,32 +146,44 @@ elif page == "AI Analyst":
                 y_col = chart_spec.get("y")
                 title = chart_spec.get("title", "")
                 agg_func = chart_spec.get("agg", "sum")
-                
-                try:
-                    # Aggregate data
-                    if agg_func == "sum":
-                        chart_df = ai_df.groupby(x_col)[y_col].sum().reset_index()
-                    elif agg_func == "mean":
-                        chart_df = ai_df.groupby(x_col)[y_col].mean().reset_index()
-                    elif agg_func == "count":
-                        chart_df = ai_df.groupby(x_col)[y_col].count().reset_index()
-                    else:
-                        chart_df = ai_df.groupby(x_col)[y_col].sum().reset_index()
-                    
-                    # Render chart
-                    if chart_type == "bar":
-                        fig = px.bar(chart_df, x=x_col, y=y_col, title=title)
-                    elif chart_type == "line":
-                        fig = px.line(chart_df, x=x_col, y=y_col, title=title)
-                    elif chart_type == "pie":
-                        fig = px.pie(chart_df, names=x_col, values=y_col, title=title)
-                    elif chart_type == "scatter":
-                        fig = px.scatter(ai_df, x=x_col, y=y_col, title=title)
-                    else:
-                        fig = None
 
-                    if fig is not None:
-                        st.plotly_chart(fig, use_container_width=True)
+                try:
+                    if x_col and y_col:
+                        if agg_func == "sum":
+                            chart_df = ai_df.groupby(x_col)[y_col].sum().reset_index()
+                        elif agg_func == "mean":
+                            chart_df = ai_df.groupby(x_col)[y_col].mean().reset_index()
+                        elif agg_func == "count":
+                            chart_df = ai_df.groupby(x_col)[y_col].count().reset_index()
+                        else:
+                            chart_df = ai_df.groupby(x_col)[y_col].sum().reset_index()
+
+                        st.markdown(f"### 📈 {title}")
+
+                        if chart_type == "bar":
+                            fig = px.bar(chart_df, x=x_col, y=y_col, title=title, color=x_col)
+                        elif chart_type == "line":
+                            fig = px.line(chart_df, x=x_col, y=y_col, title=title, markers=True)
+                        elif chart_type == "pie":
+                            fig = px.pie(chart_df, names=x_col, values=y_col, title=title)
+                        elif chart_type == "scatter":
+                            fig = px.scatter(
+                                ai_df,
+                                x=x_col,
+                                y=y_col,
+                                title=title,
+                                color=x_col if x_col in ai_df.columns else None,
+                            )
+                        else:
+                            fig = None
+
+                        if fig is not None:
+                            fig.update_layout(showlegend=True, height=450)
+                            st.plotly_chart(fig, use_container_width=True)
+
                 except Exception as e:
                     st.warning(f"Chart generate nahi ho saka: {e}")
-        st.dataframe(ai_df.head(10))
+
+        # Always show raw data at bottom
+        with st.expander("🔍 Raw Data Preview"):
+            st.dataframe(ai_df.head(20))
