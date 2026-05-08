@@ -1,5 +1,6 @@
 from groq import Groq
-from config import GROQ_API_KEY
+import os
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 import json
 
 def get_ai_insight(df, user_question):
